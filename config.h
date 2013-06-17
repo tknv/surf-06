@@ -5,16 +5,20 @@ static char *useragent      = "Mozilla/5.0 (X11; U; Unix; en-US) "
 static char *progress       = "#0000FF";
 static char *progress_untrust = "#FF0000";
 static char *progress_trust = "#00FF00";
-static char *progress_proxy = "#FFFF00";
+static char *progress_proxy = "#D059F4";
 static char *progress_proxy_trust = "#66FF00";
 static char *progress_proxy_untrust = "#FF6600";
 static char *stylefile      = "~/.surf/style.css";
 static char *scriptfile     = "~/.surf/script.js";
 static char *cookiefile     = "~/.surf/cookies.txt";
+static char *historyfile    = "~/.surf/history";
 static time_t sessiontime   = 3600;
 static char *cafile         = "/etc/ssl/certs/ca-certificates.crt";
 static char *strictssl      = FALSE; /* Refuse untrusted SSL connections */
 static int   indicator_thickness = 2;
+
+/// tknv add home page
+#define HOMEPAGE "http://www.google.com"
 
 /* Webkit default features */
 static Bool enablespatialbrowsing = TRUE;
@@ -31,6 +35,24 @@ static Bool hidebackground  = FALSE;
 		p, q, winid, NULL \
 	} \
 }
+
+/// tknv, for bookmarking
+#define BM_PICK { .v = (char *[]){ "/bin/sh", "-c", \
+	"xprop -id $0 -f _SURF_GO 8s -set _SURF_GO \
+	`cat ~/.surf/bookmarks | dmenu || exit 0`", \
+	winid, NULL } }
+
+#define BM_ADD { .v = (char *[]){ "/bin/sh", "-c", \
+	"(echo `xprop -id $0 _SURF_URI | cut -d '\"' -f 2` && \
+	cat ~/.surf/bookmarks) | sort -u > ~/.surf/bookmarks_new && \
+	mv ~/.surf/bookmarks_new ~/.surf/bookmarks", \
+	winid, NULL } }
+
+/// tknv, for history
+#define HISTORY { .v = (char *[]){ "/bin/sh", "-c", \
+	"xprop -id $0 -f _SURF_GO 8s -set _SURF_GO \
+	`cat ~/.surf/history | sort -ru | dmenu -l 10 -b -i || exit 0`", \
+	winid, NULL } }
 
 /* DOWNLOAD(URI, referer) */
 #define DOWNLOAD(d, r) { \
@@ -70,9 +92,10 @@ static Key keys[] = {
 
     { MODKEY,               GDK_j,           scroll_v,   { .i = +1 } },
     { MODKEY,               GDK_k,           scroll_v,   { .i = -1 } },
-    { MODKEY,               GDK_b,           scroll_v,   { .i = -10000 } },
-    { MODKEY,               GDK_space,       scroll_v,   { .i = +10000 } },
-    { MODKEY,               GDK_i,           scroll_h,   { .i = +1 } },
+    { MODKEY,               GDK_b,      spawn,      BM_PICK },
+    { MODKEY|GDK_SHIFT_MASK,GDK_b,      spawn,      BM_ADD },
+	{ MODKEY,               GDK_Return, spawn,      HISTORY },
+    { MODKEY,   			GDK_i,  	spawn,  	{ .v = (char *[]){ "/bin/sh", "-c", "curl -s -d username=\"$(cat ~/.surf/instapaper | sed -n '1p')\" -d password=\"$(cat ~/.surf/instapaper | sed -n '2p')\" -d url=\"$(xprop -id $0 _SURF_URI | cut -d '\"' -f 2)\" https://www.instapaper.com/api/add > /dev/null", winid, NULL } } },
     { MODKEY,               GDK_u,           scroll_h,   { .i = -1 } },
 
     { 0,                    GDK_F11,    fullscreen, { 0 } },
